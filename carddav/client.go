@@ -12,8 +12,9 @@ import (
 	"time"
 
 	"github.com/emersion/go-vcard"
-	"github.com/emersion/go-webdav"
-	"github.com/emersion/go-webdav/internal"
+
+	"github.com/Raimguzhinov/go-webdav"
+	"github.com/Raimguzhinov/go-webdav/internal"
 )
 
 // DiscoverContextURL performs a DNS-based CardDAV service discovery as
@@ -76,7 +77,10 @@ func decodeSupportedAddressData(supported *supportedAddressData) []AddressDataTy
 	return l
 }
 
-func (c *Client) FindAddressBooks(ctx context.Context, addressBookHomeSet string) ([]AddressBook, error) {
+func (c *Client) FindAddressBooks(
+	ctx context.Context,
+	addressBookHomeSet string,
+) ([]AddressBook, error) {
 	propfind := internal.NewPropNamePropFind(
 		internal.ResourceTypeName,
 		internal.DisplayNameName,
@@ -158,7 +162,9 @@ func encodePropFilter(pf *PropFilter) (*propFilter, error) {
 	el := &propFilter{Name: pf.Name, Test: filterTest(pf.Test)}
 	if pf.IsNotDefined {
 		if len(pf.TextMatches) > 0 || len(pf.Params) > 0 {
-			return nil, fmt.Errorf("carddav: failed to encode PropFilter: IsNotDefined cannot be set with TextMatches or Params")
+			return nil, fmt.Errorf(
+				"carddav: failed to encode PropFilter: IsNotDefined cannot be set with TextMatches or Params",
+			)
 		}
 		el.IsNotDefined = &struct{}{}
 	}
@@ -179,7 +185,9 @@ func encodeParamFilter(pf *ParamFilter) (*paramFilter, error) {
 	el := &paramFilter{Name: pf.Name}
 	if pf.IsNotDefined {
 		if pf.TextMatch != nil {
-			return nil, fmt.Errorf("carddav: failed to encode ParamFilter: only one of IsNotDefined or TextMatch can be set")
+			return nil, fmt.Errorf(
+				"carddav: failed to encode ParamFilter: only one of IsNotDefined or TextMatch can be set",
+			)
 		}
 		el.IsNotDefined = &struct{}{}
 	}
@@ -243,7 +251,11 @@ func decodeAddressList(ms *internal.MultiStatus) ([]AddressObject, error) {
 	return addrs, nil
 }
 
-func (c *Client) QueryAddressBook(ctx context.Context, addressBook string, query *AddressBookQuery) ([]AddressObject, error) {
+func (c *Client) QueryAddressBook(
+	ctx context.Context,
+	addressBook string,
+	query *AddressBookQuery,
+) ([]AddressObject, error) {
 	propReq, err := encodeAddressPropReq(&query.DataRequest)
 	if err != nil {
 		return nil, err
@@ -277,7 +289,11 @@ func (c *Client) QueryAddressBook(ctx context.Context, addressBook string, query
 	return decodeAddressList(ms)
 }
 
-func (c *Client) MultiGetAddressBook(ctx context.Context, path string, multiGet *AddressBookMultiGet) ([]AddressObject, error) {
+func (c *Client) MultiGetAddressBook(
+	ctx context.Context,
+	path string,
+	multiGet *AddressBookMultiGet,
+) ([]AddressObject, error) {
 	propReq, err := encodeAddressPropReq(&multiGet.DataRequest)
 	if err != nil {
 		return nil, err
@@ -361,7 +377,11 @@ func (c *Client) GetAddressObject(ctx context.Context, path string) (*AddressObj
 		return nil, err
 	}
 	if !strings.EqualFold(mediaType, vcard.MIMEType) {
-		return nil, fmt.Errorf("carddav: expected Content-Type %q, got %q", vcard.MIMEType, mediaType)
+		return nil, fmt.Errorf(
+			"carddav: expected Content-Type %q, got %q",
+			vcard.MIMEType,
+			mediaType,
+		)
 	}
 
 	card, err := vcard.NewDecoder(resp.Body).Decode()
@@ -379,7 +399,11 @@ func (c *Client) GetAddressObject(ctx context.Context, path string) (*AddressObj
 	return ao, nil
 }
 
-func (c *Client) PutAddressObject(ctx context.Context, path string, card vcard.Card) (*AddressObject, error) {
+func (c *Client) PutAddressObject(
+	ctx context.Context,
+	path string,
+	card vcard.Card,
+) (*AddressObject, error) {
 	// TODO: add support for If-None-Match and If-Match
 
 	// TODO: some servers want a Content-Length header, so we can't stream the
@@ -399,7 +423,7 @@ func (c *Client) PutAddressObject(ctx context.Context, path string, card vcard.C
 
 	req, err := c.ic.NewRequest(http.MethodPut, path, &buf)
 	if err != nil {
-		//pr.Close()
+		// pr.Close()
 		return nil, err
 	}
 	req.Header.Set("Content-Type", vcard.MIMEType)
@@ -419,7 +443,11 @@ func (c *Client) PutAddressObject(ctx context.Context, path string, card vcard.C
 
 // SyncCollection performs a collection synchronization operation on the
 // specified resource, as defined in RFC 6578.
-func (c *Client) SyncCollection(ctx context.Context, path string, query *SyncQuery) (*SyncResponse, error) {
+func (c *Client) SyncCollection(
+	ctx context.Context,
+	path string,
+	query *SyncQuery,
+) (*SyncResponse, error) {
 	var limit *internal.Limit
 	if query.Limit > 0 {
 		limit = &internal.Limit{NResults: uint(query.Limit)}

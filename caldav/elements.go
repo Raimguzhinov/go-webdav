@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/emersion/go-webdav/internal"
+	"github.com/Raimguzhinov/go-webdav/internal"
 )
 
 const namespace = "urn:ietf:params:xml:ns:caldav"
@@ -223,7 +223,11 @@ func (r *reportReq) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		r.Multiget = &calendarMultiget{}
 		v = r.Multiget
 	default:
-		return fmt.Errorf("caldav: unsupported REPORT root %q %q", start.Name.Space, start.Name.Local)
+		return fmt.Errorf(
+			"caldav: unsupported REPORT root %q %q",
+			start.Name.Space,
+			start.Name.Local,
+		)
 	}
 
 	return d.DecodeElement(v, &start)

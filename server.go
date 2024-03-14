@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/emersion/go-webdav/internal"
+	"github.com/Raimguzhinov/go-webdav/internal"
 )
 
 // FileSystem is a WebDAV server backend.
@@ -115,7 +115,11 @@ func (b *backend) HeadGet(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (b *backend) PropFind(r *http.Request, propfind *internal.PropFind, depth internal.Depth) (*internal.MultiStatus, error) {
+func (b *backend) PropFind(
+	r *http.Request,
+	propfind *internal.PropFind,
+	depth internal.Depth,
+) (*internal.MultiStatus, error) {
 	// TODO: use partial error Response on error
 
 	fi, err := b.FileSystem.Stat(r.Context(), r.URL.Path)
@@ -125,7 +129,11 @@ func (b *backend) PropFind(r *http.Request, propfind *internal.PropFind, depth i
 
 	var resps []internal.Response
 	if depth != internal.DepthZero && fi.IsDir {
-		children, err := b.FileSystem.ReadDir(r.Context(), r.URL.Path, depth == internal.DepthInfinity)
+		children, err := b.FileSystem.ReadDir(
+			r.Context(),
+			r.URL.Path,
+			depth == internal.DepthInfinity,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +158,10 @@ func (b *backend) PropFind(r *http.Request, propfind *internal.PropFind, depth i
 	return internal.NewMultiStatus(resps...), nil
 }
 
-func (b *backend) propFindFile(propfind *internal.PropFind, fi *FileInfo) (*internal.Response, error) {
+func (b *backend) propFindFile(
+	propfind *internal.PropFind,
+	fi *FileInfo,
+) (*internal.Response, error) {
 	props := make(map[xml.Name]internal.PropFindFunc)
 
 	props[internal.ResourceTypeName] = func(*internal.RawXMLValue) (interface{}, error) {
@@ -188,7 +199,10 @@ func (b *backend) propFindFile(propfind *internal.PropFind, fi *FileInfo) (*inte
 	return internal.NewPropFindResponse(fi.Path, propfind, props)
 }
 
-func (b *backend) PropPatch(r *http.Request, update *internal.PropertyUpdate) (*internal.Response, error) {
+func (b *backend) PropPatch(
+	r *http.Request,
+	update *internal.PropertyUpdate,
+) (*internal.Response, error) {
 	// TODO: return a failed Response instead
 	return nil, internal.HTTPErrorf(http.StatusForbidden, "webdav: PROPPATCH is unsupported")
 }
@@ -225,7 +239,10 @@ func (b *backend) Delete(r *http.Request) error {
 
 func (b *backend) Mkcol(r *http.Request) error {
 	if r.Header.Get("Content-Type") != "" {
-		return internal.HTTPErrorf(http.StatusUnsupportedMediaType, "webdav: request body not supported in MKCOL request")
+		return internal.HTTPErrorf(
+			http.StatusUnsupportedMediaType,
+			"webdav: request body not supported in MKCOL request",
+		)
 	}
 	err := b.FileSystem.Mkdir(r.Context(), r.URL.Path)
 	if internal.IsNotFound(err) {
@@ -234,7 +251,11 @@ func (b *backend) Mkcol(r *http.Request) error {
 	return err
 }
 
-func (b *backend) Copy(r *http.Request, dest *internal.Href, recursive, overwrite bool) (created bool, err error) {
+func (b *backend) Copy(
+	r *http.Request,
+	dest *internal.Href,
+	recursive, overwrite bool,
+) (created bool, err error) {
 	options := CopyOptions{
 		NoRecursive: !recursive,
 		NoOverwrite: !overwrite,
@@ -246,7 +267,11 @@ func (b *backend) Copy(r *http.Request, dest *internal.Href, recursive, overwrit
 	return created, err
 }
 
-func (b *backend) Move(r *http.Request, dest *internal.Href, overwrite bool) (created bool, err error) {
+func (b *backend) Move(
+	r *http.Request,
+	dest *internal.Href,
+	overwrite bool,
+) (created bool, err error) {
 	options := MoveOptions{
 		NoOverwrite: !overwrite,
 	}
@@ -303,7 +328,11 @@ func ServePrincipal(w http.ResponseWriter, r *http.Request, options *ServePrinci
 	}
 }
 
-func servePrincipalPropfind(w http.ResponseWriter, r *http.Request, options *ServePrincipalOptions) error {
+func servePrincipalPropfind(
+	w http.ResponseWriter,
+	r *http.Request,
+	options *ServePrincipalOptions,
+) error {
 	var propfind internal.PropFind
 	if err := internal.DecodeXMLRequest(r, &propfind); err != nil {
 		return err
@@ -313,7 +342,9 @@ func servePrincipalPropfind(w http.ResponseWriter, r *http.Request, options *Ser
 			return internal.NewResourceType(principalName), nil
 		},
 		internal.CurrentUserPrincipalName: func(*internal.RawXMLValue) (interface{}, error) {
-			return &internal.CurrentUserPrincipal{Href: internal.Href{Path: options.CurrentUserPrincipalPath}}, nil
+			return &internal.CurrentUserPrincipal{
+				Href: internal.Href{Path: options.CurrentUserPrincipalPath},
+			}, nil
 		},
 	}
 

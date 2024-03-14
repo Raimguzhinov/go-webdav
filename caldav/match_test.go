@@ -182,7 +182,7 @@ END:VCALENDAR`)
 				CompFilter: CompFilter{
 					Name: "VCALENDAR",
 					Comps: []CompFilter{
-						CompFilter{
+						{
 							Name: "VEVENT",
 						},
 					},
@@ -198,7 +198,7 @@ END:VCALENDAR`)
 				CompFilter: CompFilter{
 					Name: "VCALENDAR",
 					Comps: []CompFilter{
-						CompFilter{
+						{
 							Name:  "VEVENT",
 							Start: toDate(t, "20060104T000000Z"),
 							End:   toDate(t, "20060105T000000Z"),
@@ -216,7 +216,7 @@ END:VCALENDAR`)
 				CompFilter: CompFilter{
 					Name: "VCALENDAR",
 					Comps: []CompFilter{
-						CompFilter{
+						{
 							Name:  "VEVENT",
 							Start: toDate(t, "20060104T000000Z"),
 						},
@@ -233,7 +233,7 @@ END:VCALENDAR`)
 				CompFilter: CompFilter{
 					Name: "VCALENDAR",
 					Comps: []CompFilter{
-						CompFilter{
+						{
 							Name: "VEVENT",
 							Props: []PropFilter{{
 								Name: "UID",
@@ -255,7 +255,7 @@ END:VCALENDAR`)
 				CompFilter: CompFilter{
 					Name: "VCALENDAR",
 					Comps: []CompFilter{
-						CompFilter{
+						{
 							Name: "VEVENT",
 							Props: []PropFilter{{
 								Name: "Description",
@@ -277,7 +277,7 @@ END:VCALENDAR`)
 				CompFilter: CompFilter{
 					Name: "VCALENDAR",
 					Comps: []CompFilter{
-						CompFilter{
+						{
 							Name:  "VEVENT",
 							Start: toDate(t, "20060103T000000Z"),
 							End:   toDate(t, "20060104T000000Z"),

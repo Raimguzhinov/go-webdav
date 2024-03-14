@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/emersion/go-ical"
-	"github.com/emersion/go-webdav"
-	"github.com/emersion/go-webdav/internal"
+
+	"github.com/Raimguzhinov/go-webdav"
+	"github.com/Raimguzhinov/go-webdav/internal"
 )
 
 var CapabilityCalendar = webdav.Capability("calendar-access")
@@ -41,7 +42,11 @@ func ValidateCalendarObject(cal *ical.Calendar) (eventType string, uid string, e
 				eventType = comp.Name
 			}
 			if eventType != comp.Name {
-				return "", "", fmt.Errorf("conflicting event types in calendar: %s, %s", eventType, comp.Name)
+				return "", "", fmt.Errorf(
+					"conflicting event types in calendar: %s, %s",
+					eventType,
+					comp.Name,
+				)
 			}
 			// TODO check VTIMEZONE for each TZID?
 		}

@@ -12,8 +12,9 @@ import (
 	"time"
 
 	"github.com/emersion/go-ical"
-	"github.com/emersion/go-webdav"
-	"github.com/emersion/go-webdav/internal"
+
+	"github.com/Raimguzhinov/go-webdav"
+	"github.com/Raimguzhinov/go-webdav/internal"
 )
 
 // DiscoverContextURL performs a DNS-based CardDAV service discovery as
@@ -221,7 +222,11 @@ func decodeCalendarObjectList(ms *internal.MultiStatus) ([]CalendarObject, error
 	return addrs, nil
 }
 
-func (c *Client) QueryCalendar(ctx context.Context, calendar string, query *CalendarQuery) ([]CalendarObject, error) {
+func (c *Client) QueryCalendar(
+	ctx context.Context,
+	calendar string,
+	query *CalendarQuery,
+) ([]CalendarObject, error) {
 	propReq, err := encodeCalendarReq(&query.CompRequest)
 	if err != nil {
 		return nil, err
@@ -243,7 +248,11 @@ func (c *Client) QueryCalendar(ctx context.Context, calendar string, query *Cale
 	return decodeCalendarObjectList(ms)
 }
 
-func (c *Client) MultiGetCalendar(ctx context.Context, path string, multiGet *CalendarMultiGet) ([]CalendarObject, error) {
+func (c *Client) MultiGetCalendar(
+	ctx context.Context,
+	path string,
+	multiGet *CalendarMultiGet,
+) ([]CalendarObject, error) {
 	propReq, err := encodeCalendarReq(&multiGet.CompRequest)
 	if err != nil {
 		return nil, err
@@ -344,7 +353,11 @@ func (c *Client) GetCalendarObject(ctx context.Context, path string) (*CalendarO
 	return co, nil
 }
 
-func (c *Client) PutCalendarObject(ctx context.Context, path string, cal *ical.Calendar) (*CalendarObject, error) {
+func (c *Client) PutCalendarObject(
+	ctx context.Context,
+	path string,
+	cal *ical.Calendar,
+) (*CalendarObject, error) {
 	// TODO: add support for If-None-Match and If-Match
 
 	// TODO: some servers want a Content-Length header, so we can't stream the

@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"github.com/emersion/go-webdav/internal"
+	"github.com/Raimguzhinov/go-webdav/internal"
 )
 
 const namespace = "urn:ietf:params:xml:ns:carddav"
@@ -206,7 +206,11 @@ func (r *reportReq) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		r.Multiget = &addressbookMultiget{}
 		v = r.Multiget
 	default:
-		return fmt.Errorf("carddav: unsupported REPORT root %q %q", start.Name.Space, start.Name.Local)
+		return fmt.Errorf(
+			"carddav: unsupported REPORT root %q %q",
+			start.Name.Space,
+			start.Name.Local,
+		)
 	}
 
 	return d.DecodeElement(v, &start)

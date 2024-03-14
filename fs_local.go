@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/emersion/go-webdav/internal"
+	"github.com/Raimguzhinov/go-webdav/internal"
 )
 
 // LocalFileSystem implements FileSystem for a local directory.
@@ -20,12 +20,17 @@ type LocalFileSystem string
 var _ FileSystem = LocalFileSystem("")
 
 func (fs LocalFileSystem) localPath(name string) (string, error) {
-	if (filepath.Separator != '/' && strings.IndexRune(name, filepath.Separator) >= 0) || strings.Contains(name, "\x00") {
+	if (filepath.Separator != '/' && strings.IndexRune(name, filepath.Separator) >= 0) ||
+		strings.Contains(name, "\x00") {
 		return "", internal.HTTPErrorf(http.StatusBadRequest, "webdav: invalid character in path")
 	}
 	name = path.Clean(name)
 	if !path.IsAbs(name) {
-		return "", internal.HTTPErrorf(http.StatusBadRequest, "webdav: expected absolute path, got %q", name)
+		return "", internal.HTTPErrorf(
+			http.StatusBadRequest,
+			"webdav: expected absolute path, got %q",
+			name,
+		)
 	}
 	return filepath.Join(string(fs), filepath.FromSlash(name)), nil
 }
@@ -87,7 +92,11 @@ func (fs LocalFileSystem) Stat(ctx context.Context, name string) (*FileInfo, err
 	return fileInfoFromOS(name, fi), nil
 }
 
-func (fs LocalFileSystem) ReadDir(ctx context.Context, name string, recursive bool) ([]FileInfo, error) {
+func (fs LocalFileSystem) ReadDir(
+	ctx context.Context,
+	name string,
+	recursive bool,
+) ([]FileInfo, error) {
 	path, err := fs.localPath(name)
 	if err != nil {
 		return nil, err
@@ -191,7 +200,11 @@ func copyRegularFile(src, dst string, perm os.FileMode) error {
 	return dstFile.Close()
 }
 
-func (fs LocalFileSystem) Copy(ctx context.Context, src, dst string, options *CopyOptions) (created bool, err error) {
+func (fs LocalFileSystem) Copy(
+	ctx context.Context,
+	src, dst string,
+	options *CopyOptions,
+) (created bool, err error) {
 	srcPath, err := fs.localPath(src)
 	if err != nil {
 		return false, err
@@ -251,7 +264,11 @@ func (fs LocalFileSystem) Copy(ctx context.Context, src, dst string, options *Co
 	return created, nil
 }
 
-func (fs LocalFileSystem) Move(ctx context.Context, src, dst string, options *MoveOptions) (created bool, err error) {
+func (fs LocalFileSystem) Move(
+	ctx context.Context,
+	src, dst string,
+	options *MoveOptions,
+) (created bool, err error) {
 	srcPath, err := fs.localPath(src)
 	if err != nil {
 		return false, err
