@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/Raimguzhinov/go-webdav"
+	"github.com/Raimguzhinov/go-webdav/caldav"
 	"github.com/emersion/go-ical"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/joho/godotenv"
-
-	"github.com/Raimguzhinov/go-webdav"
-	"github.com/Raimguzhinov/go-webdav/caldav"
 )
 
 // transport is an http.RoundTripper that keeps track of the in-flight
@@ -102,20 +102,6 @@ func main() {
 
 	if len(calendars) > 0 {
 
-		id, err := uuid.GenerateUUID()
-		if err != nil {
-			log.Fatalf("could not generate UUID: %v", err)
-		}
-		id = strings.ToUpper(id)
-		_ = id
-
-		// co, err := caldavClient.PutCalendarObject(context.Background(), dst, cal)
-		// if err != nil {
-		// 	log.Fatalf("could not put calendar event to %q: %v", dst, err)
-		// }
-		//
-		// fmt.Println(co)
-
 		query := &caldav.CalendarQuery{
 			CompRequest: caldav.CalendarCompRequest{
 				Name:  "VCALENDAR",
@@ -135,9 +121,9 @@ func main() {
 			CompFilter: caldav.CompFilter{
 				Name: "VCALENDAR",
 				Comps: []caldav.CompFilter{{
-					Name:  "VEVENT",
-					Start: time.Now().Add(-92 * time.Hour),
-					End:   time.Now().Add(24 * time.Hour),
+					Name: "VEVENT",
+					// Start: time.Now().Add(-92 * time.Hour),
+					// End:   time.Now().Add(24 * time.Hour),
 				}},
 			},
 		}
@@ -155,13 +141,14 @@ func main() {
 			fmt.Printf("ics %d: %s\n", i, event.Path)
 		}
 
-		dst, err := url.JoinPath(root, resp[0].Path)
-		if err != nil {
-			log.Fatal(err)
-		}
 		fmt.Printf("\n\nEvents:\n")
+		var ievents []ical.Event
 
-		for _, icsEvent := range resp {
+		for i := range resp {
+			dst, err := url.JoinPath(root, resp[i].Path)
+			if err != nil {
+				log.Fatal(err)
+			}
 			req, err := http.NewRequestWithContext(
 				context.Background(),
 				http.MethodGet,
@@ -183,23 +170,64 @@ func main() {
 				log.Fatalf("decoding ics events: %v", err)
 			}
 
-			for _, e := range events {
-				redacted := redactComponent(e.Component)
-				redacted.Props.Set(&ical.Prop{Name: "SUMMARY", Value: "Test"})
-				dtstrt, _ := redacted.Props.DateTime("DTSTART", time.Local)
-				dtend, _ := redacted.Props.DateTime("DTEND", time.Local)
-				dstmp, _ := redacted.Props.DateTime("DTSTAMP", time.Local)
+			ievents = append(ievents, events...)
+		}
 
-				fmt.Println(icsEvent)
-				fmt.Println("DTSTART:", dtstrt)
-				fmt.Println("DTEND:", dtend)
-				fmt.Println("DTSTAMP:", dstmp)
-				fmt.Printf("\n")
+		for i, e := range ievents {
+			redacted := redactComponent(e.Component)
+			summary, _ := redacted.Props.Text("SUMMARY")
+			description, _ := redacted.Props.Text("DESCRIPTION")
+
+			fmt.Println("SUMMARY:", summary)
+			fmt.Println("DESCRIPTION:", description)
+
+			etag, err := strconv.Atoi(resp[i].ETag)
+			if err != nil {
+				return
 			}
+			fmt.Println("FAKETIME:", time.UnixMilli(int64(etag)))
+			uaid, err := redacted.Props.Text("UID")
+			if err != nil {
+				return
+			}
+			fmt.Println("UID:", uaid)
+			fmt.Printf("\n")
 		}
 	} else {
 		fmt.Println("Calendars not found")
 	}
+
+	id, err := uuid.GenerateUUID()
+	if err != nil {
+		log.Fatalf("could not generate UUID: %v", err)
+	}
+	id = strings.ToUpper(id)
+	_ = id
+
+	eventSummary := "syomka"
+	event := ical.NewEvent()
+	event.Name = ical.CompEvent
+	event.Props.SetText(ical.PropUID, id)
+	event.Props.SetText(ical.PropSummary, eventSummary)
+	event.Props.SetDateTime(ical.PropDateTimeStart, time.Now())
+	event.Props.SetDateTime(ical.PropDateTimeEnd, time.Now())
+	event.Props.SetDateTime(ical.PropDateTimeStamp, time.Now())
+	cal := ical.NewCalendar()
+	cal.Props.SetText(ical.PropVersion, "2.0")
+	cal.Props.SetText(ical.PropProductID, "-//Raimguzhinov//go-caldav 1.0//EN")
+	cal.Children = []*ical.Component{
+		event.Component,
+	}
+
+	obj, err := caldavClient.PutCalendarObject(
+		context.Background(),
+		calendars[0].Path+id+".ics",
+		cal,
+	)
+	if err != nil {
+		log.Fatalf("could not put calendar object: %v", err)
+	}
+	fmt.Println(obj)
 }
 
 func decodeEvents(r io.ReadCloser) (events []ical.Event, _ error) {
@@ -265,14 +293,14 @@ var REDACT = map[string]bool{
 	"CATEGORIES":       true,
 	"CLASS":            false,
 	"COMMENT":          true,
-	"DESCRIPTION":      true,
+	"DESCRIPTION":      false,
 	"GEO":              true,
 	"LOCATION":         true,
 	"PERCENT-COMPLETE": true,
 	"PRIORITY":         false,
 	"RESOURCES":        true,
 	"STATUS":           false,
-	"SUMMARY":          true,
+	"SUMMARY":          false,
 	"COMPLETED":        false,
 	"DTEND":            false,
 	"DUE":              false,
