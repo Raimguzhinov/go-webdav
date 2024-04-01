@@ -381,7 +381,17 @@ func (etag *ETag) UnmarshalText(b []byte) error {
 	// if err != nil {
 	// 	return fmt.Errorf("webdav: failed to unquote ETag: %v", err)
 	// }
-	*etag = ETag(b)
+	// *etag = ETag(b)
+	s := string(b)
+	if s[0:1] == "\"" {
+		sUnquoted, err := strconv.Unquote(s)
+		if err != nil {
+			return fmt.Errorf("webdav: failed to unquote ETag: %v", err)
+		}
+		*etag = ETag(sUnquoted)
+	} else {
+		*etag = ETag(s)
+	}
 	return nil
 }
 

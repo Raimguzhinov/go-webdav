@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -44,21 +41,21 @@ func init() {
 }
 
 func main() {
-	root, exists := os.LookupEnv("CALDAV_ROOT")
+	root, exists := os.LookupEnv("CALDAV_ROOT_BY")
 	if !exists {
 		fmt.Println(
 			"Please set CALDAV_ROOT environment variable (CALDAV_ROOT=http://caldav.exapmle.com)",
 		)
 		os.Exit(1)
 	}
-	user, exists := os.LookupEnv("CALDAV_USER")
+	user, exists := os.LookupEnv("CALDAV_USER_YA")
 	if !exists {
 		fmt.Println(
 			"Please set CALDAV_USER environment variable",
 		)
 		os.Exit(1)
 	}
-	password, exists := os.LookupEnv("CALDAV_PASSWORD")
+	password, exists := os.LookupEnv("CALDAV_PASSWORD_YA")
 	if !exists {
 		fmt.Println(
 			"Please set CALDAV_PASSWORD environment variable",
@@ -84,18 +81,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Printf("\n\nResponse:\n%v\n", principal)
 	homeSet, err := caldavClient.FindCalendarHomeSet(context.Background(), principal)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("\n\nResponse:\n%v\n", homeSet)
 	calendars, err := caldavClient.FindCalendars(context.Background(), homeSet)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("\n\nResponse:\n")
 	for i, calendar := range calendars {
 		fmt.Printf("cal %d: %s %s\n", i, calendar.Name, calendar.Path)
 	}
@@ -115,6 +108,8 @@ func main() {
 						"DTSTART",
 						"DTEND",
 						"DURATION",
+						"LAST-MODIFIED",
+						"X-PROTEI-SENDERID",
 					},
 				}},
 			},
@@ -136,63 +131,62 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("\n\nResponse:\n")
-		for i, event := range resp {
-			fmt.Printf("ics %d: %s\n", i, event.Path)
+
+		for _, calendarObject := range resp {
+			for _, e := range calendarObject.Data.Events() {
+				// fmt.Printf("\n\nEVENT PROPS:\n%v\n", e.Props)
+				location := time.Local
+				eventClass := GetPropertyValue(e.Props.Get("CLASS"))
+				eventId := GetPropertyValue(e.Props.Get("UID"))
+				eventName, _ := e.Props.Text("SUMMARY")
+				eventDescription, _ := e.Props.Text("DESCRIPTION")
+				eventUrl := GetPropertyValue(e.Props.Get("URL"))
+				eventSenderId := GetPropertyValue(e.Props.Get("X-PROTEI-SENDERID"))
+				sequence := GetPropertyValue(e.Props.Get("SEQUENCE"))
+				transp := GetPropertyValue(e.Props.Get("TRANSP"))
+				status, _ := e.Status()
+
+				createdTime, err := e.Props.DateTime("CREATED", location)
+				if err != nil {
+					log.Fatal(err, "Can't parse CREATED for event "+eventName)
+				}
+				startTime, err := e.Props.DateTime("DTSTART", location)
+				if err != nil {
+					log.Fatal(err, "Can't parse DTSTART for event "+eventName)
+				}
+				endTime, err := e.Props.DateTime("DTEND", location)
+				if err != nil {
+					log.Fatal(err, "Can't parse DTEND for event "+eventName)
+				}
+				dtstamp, err := e.Props.DateTime("DTSTAMP", location)
+				if err != nil {
+					log.Fatal(err, "Can't parse DTSTAMP for event "+eventName)
+				}
+				lastModifiedTime, err := e.Props.DateTime("LAST-MODIFIED", location)
+				if err != nil {
+					log.Fatal(err, "Can't parse LAST-MODIFIED for event "+eventName)
+				}
+
+				fmt.Printf(
+					"\nCLASS: %s\nSTATUS: %s\nUID: %s\nSUMMARY: %s\nDESCRIPTION: %s\nURL: %s\nCREATED: %s\nDTSTART: %s\nDTEND: %s\nDTSTAMP %s\nLAST-MODIFIED: %s\nSEQUENCE: %s\nTRANSP: %s\nX-PROTEI-SENDERID: %s\n",
+					eventClass,
+					status,
+					eventId,
+					eventName,
+					eventDescription,
+					eventUrl,
+					createdTime.Local(),
+					startTime,
+					endTime,
+					dtstamp.Local(),
+					lastModifiedTime.Local(),
+					sequence,
+					transp,
+					eventSenderId,
+				)
+			}
 		}
 
-		fmt.Printf("\n\nEvents:\n")
-		var ievents []ical.Event
-
-		for i := range resp {
-			dst, err := url.JoinPath(root, resp[i].Path)
-			if err != nil {
-				log.Fatal(err)
-			}
-			req, err := http.NewRequestWithContext(
-				context.Background(),
-				http.MethodGet,
-				dst,
-				nil,
-			)
-			if err != nil {
-				log.Fatalf("crafting ics request: %v", err)
-			}
-			req.SetBasicAuth(user, password)
-
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				log.Fatalf("performing ics request: %v", err)
-			}
-
-			events, err := decodeEvents(resp.Body)
-			if err != nil {
-				log.Fatalf("decoding ics events: %v", err)
-			}
-
-			ievents = append(ievents, events...)
-		}
-
-		for i, e := range ievents {
-			redacted := redactComponent(e.Component)
-			summary, _ := redacted.Props.Text("SUMMARY")
-			description, _ := redacted.Props.Text("DESCRIPTION")
-
-			fmt.Println("SUMMARY:", summary)
-			fmt.Println("DESCRIPTION:", description)
-
-			etag, err := strconv.Atoi(resp[i].ETag)
-			if err != nil {
-				return
-			}
-			fmt.Println("FAKETIME:", time.UnixMilli(int64(etag)))
-			uaid, err := redacted.Props.Text("UID")
-			if err != nil {
-				return
-			}
-			fmt.Println("UID:", uaid)
-			fmt.Printf("\n")
-		}
 	} else {
 		fmt.Println("Calendars not found")
 	}
@@ -201,49 +195,82 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not generate UUID: %v", err)
 	}
-	id = strings.ToUpper(id)
-	_ = id
 
-	eventSummary := "syomka"
+	alarm := ical.NewComponent(ical.CompAlarm)
+	alarm.Props.SetText(ical.PropAction, "DISPLAY")
+	trigger := ical.NewProp(ical.PropTrigger)
+	trigger.SetDuration(-58 * time.Minute)
+	alarm.Props.Set(trigger)
+
+	eventSummary := "protei event tzid"
 	event := ical.NewEvent()
 	event.Name = ical.CompEvent
+	event.Props.SetDateTime(ical.PropCreated, time.Now().UTC())
+	event.Props.SetDateTime(ical.PropDateTimeStamp, time.Now().UTC())
+	event.Props.SetDateTime(ical.PropLastModified, time.Now().UTC())
+	event.Props.SetText(ical.PropSequence, "1")
 	event.Props.SetText(ical.PropUID, id)
+	event.Props.SetDateTime(ical.PropDateTimeStart, time.Now().Local().Add(1*time.Hour))
+	event.Props.SetDateTime(ical.PropDateTimeEnd, time.Now().Local().Add(2*time.Hour))
+	event.SetStatus(ical.EventConfirmed)
 	event.Props.SetText(ical.PropSummary, eventSummary)
-	event.Props.SetDateTime(ical.PropDateTimeStart, time.Now())
-	event.Props.SetDateTime(ical.PropDateTimeEnd, time.Now())
-	event.Props.SetDateTime(ical.PropDateTimeStamp, time.Now())
+	event.Props.SetText(ical.PropTransparency, "OPAQUE")
+	event.Props.SetText(ical.PropClass, "PUBLIC")
+
+	sender := ical.NewProp("X-PROTEI-SENDERID")
+	sender.SetText("12345")
+	event.Props.Set(sender)
+
+	event.Children = []*ical.Component{
+		alarm,
+	}
+
 	cal := ical.NewCalendar()
 	cal.Props.SetText(ical.PropVersion, "2.0")
 	cal.Props.SetText(ical.PropProductID, "-//Raimguzhinov//go-caldav 1.0//EN")
+	cal.Props.SetText(ical.PropCalendarScale, "GREGORIAN")
+
+	// standard := ical.NewComponent(ical.CompTimezoneStandard)
+	// tzid, _ := time.Now().Zone()
+	// standard.Props.SetText(ical.PropTimezoneName, tzid)
+	// standard.Props.SetDateTime(ical.PropDateTimeStart, time.Now().Local())
+	// standard.Props.SetText(ical.PropTimezoneOffsetTo, "+0700")
+	// standard.Props.SetText(ical.PropTimezoneOffsetFrom, "+0700")
+	//
+	// timezone := ical.NewComponent(ical.CompTimezone)
+	// timezone.Props.SetText(ical.PropTimezoneID, "Asia/Novosibirsk")
+	// timezone.Children = []*ical.Component{
+	// 	standard,
+	// }
+
 	cal.Children = []*ical.Component{
 		event.Component,
 	}
 
-	obj, err := caldavClient.PutCalendarObject(
-		context.Background(),
-		calendars[0].Path+id+".ics",
-		cal,
-	)
-	if err != nil {
-		log.Fatalf("could not put calendar object: %v", err)
-	}
-	fmt.Println(obj)
+	// err = caldavClient.RemoveAll(
+	// 	context.Background(),
+	// 	calendars[0].Path+"aee29dd1-3c2b-20bb-df22-1b401ada9688.ics",
+	// )
+	// if err != nil {
+	// 	log.Fatalf("could not remove calendar object: %v", err)
+	// }
+
+	// obj, err := caldavClient.PutCalendarObject(
+	// 	context.Background(),
+	// 	calendars[0].Path+id+".ics",
+	// 	cal,
+	// )
+	// if err != nil {
+	// 	log.Fatalf("could not put calendar object: %v", err)
+	// }
+	// fmt.Println(obj)
 }
 
-func decodeEvents(r io.ReadCloser) (events []ical.Event, _ error) {
-	dec := ical.NewDecoder(r)
-	defer r.Close()
-
-	for {
-		cal, err := dec.Decode()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-		events = append(events, cal.Events()...)
+func GetPropertyValue(prop *ical.Prop) string {
+	if prop == nil {
+		return ""
 	}
-	return
+	return prop.Value
 }
 
 func redactComponent(e *ical.Component) *ical.Component {
@@ -336,6 +363,7 @@ var REDACT = map[string]bool{
 	"ACKNOWLEDGED": false,
 
 	// Non-RFC
-	"X-MOZ-LASTACK":    false,
-	"X-MOZ-GENERATION": false,
+	"X-MOZ-LASTACK":     false,
+	"X-MOZ-GENERATION":  false,
+	"X-PROTEI-SENDERID": false,
 }
