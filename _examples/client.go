@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"context"
@@ -40,22 +40,22 @@ func init() {
 	}
 }
 
-func main() {
-	root, exists := os.LookupEnv("CALDAV_ROOT_BY")
+func RunClient() {
+	root, exists := os.LookupEnv("CALDAV_ROOT")
 	if !exists {
 		fmt.Println(
 			"Please set CALDAV_ROOT environment variable (CALDAV_ROOT=http://caldav.exapmle.com)",
 		)
 		os.Exit(1)
 	}
-	user, exists := os.LookupEnv("CALDAV_USER_YA")
+	user, exists := os.LookupEnv("CALDAV_USER")
 	if !exists {
 		fmt.Println(
 			"Please set CALDAV_USER environment variable",
 		)
 		os.Exit(1)
 	}
-	password, exists := os.LookupEnv("CALDAV_PASSWORD_YA")
+	password, exists := os.LookupEnv("CALDAV_PASSWORD")
 	if !exists {
 		fmt.Println(
 			"Please set CALDAV_PASSWORD environment variable",
@@ -81,10 +81,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println(principal + "\n")
 	homeSet, err := caldavClient.FindCalendarHomeSet(context.Background(), principal)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println(homeSet + "\n")
 	calendars, err := caldavClient.FindCalendars(context.Background(), homeSet)
 	if err != nil {
 		log.Fatal(err)
