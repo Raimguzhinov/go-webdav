@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Raimguzhinov/go-webdav/internal"
+	"github.com/emersion/go-webdav/internal"
 )
 
 // FileSystem is a WebDAV server backend.

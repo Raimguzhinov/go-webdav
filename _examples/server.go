@@ -1,4 +1,4 @@
-package server
+package example
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Raimguzhinov/go-webdav/caldav"
 	"github.com/emersion/go-ical"
+	"github.com/emersion/go-webdav/caldav"
 )
 
 type backend struct {
@@ -43,15 +43,10 @@ func (s *backend) CurrentUserPrincipal(ctx context.Context) (string, error) {
 }
 
 func (s *backend) DeleteCalendarObject(ctx context.Context, path string) error {
-	delete(s.objectMap, path)
 	return nil
 }
 
-func (s *backend) GetCalendarObject(
-	ctx context.Context,
-	path string,
-	req *caldav.CalendarCompRequest,
-) (*caldav.CalendarObject, error) {
+func (s *backend) GetCalendarObject(ctx context.Context, path string, req *caldav.CalendarCompRequest) (*caldav.CalendarObject, error) {
 	for _, objs := range s.objectMap {
 		for _, obj := range objs {
 			if obj.Path == path {
@@ -67,13 +62,13 @@ func (s *backend) PutCalendarObject(
 	path string,
 	calendar *ical.Calendar,
 	opts *caldav.PutCalendarObjectOptions,
-) (string, error) {
+) (*caldav.CalendarObject, error) {
 	object := caldav.CalendarObject{
 		Path: path,
 		Data: calendar,
 	}
 	s.objectMap[path] = append(s.objectMap[path], object)
-	return path, nil
+	return &object, nil
 }
 
 func (s *backend) ListCalendarObjects(

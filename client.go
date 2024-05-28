@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Raimguzhinov/go-webdav/internal"
+	"github.com/emersion/go-webdav/internal"
 )
 
 // HTTPClient performs HTTP requests. It's implemented by *http.Client.

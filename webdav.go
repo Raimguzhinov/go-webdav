@@ -6,7 +6,7 @@ package webdav
 import (
 	"time"
 
-	"github.com/Raimguzhinov/go-webdav/internal"
+	"github.com/emersion/go-webdav/internal"
 )
 
 // FileInfo holds information about a WebDAV file.

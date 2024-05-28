@@ -1,4 +1,4 @@
-package client
+package example
 
 import (
 	"context"
@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Raimguzhinov/go-webdav"
-	"github.com/Raimguzhinov/go-webdav/caldav"
 	"github.com/emersion/go-ical"
+	"github.com/emersion/go-webdav"
+	"github.com/emersion/go-webdav/caldav"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/joho/godotenv"
 )
@@ -73,11 +73,16 @@ func RunClient() {
 		password,
 	)
 
+	wb, err := webdav.NewClient(baHttpClient, root)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	caldavClient, err := caldav.NewClient(baHttpClient, root)
 	if err != nil {
 		log.Fatal(err)
 	}
-	principal, err := caldavClient.FindCurrentUserPrincipal(context.Background())
+	principal, err := wb.FindCurrentUserPrincipal(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
